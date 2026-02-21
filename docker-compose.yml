@@ -1,0 +1,10 @@
+services:
+  templates:
+    build: .
+    ports:
+      - "8023:8023"
+    volumes:
+      - ./data/templates:/app/data/templates
+    environment:
+      - TEMPLATES_DIR=/app/data/templates
+    restart: unless-stopped

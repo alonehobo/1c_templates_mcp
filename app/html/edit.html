@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{% if tpl %}Редактировать шаблон{% else %}Новый шаблон{% endif %} — 1С Шаблоны{% endblock %}
+
+{% block content %}
+<div class="page-title">
+  {% if tpl %}Редактировать: {{ tpl.name }}{% else %}Новый шаблон{% endif %}
+</div>
+
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="{% if tpl %}/{{ tpl.id }}/edit{% else %}/new{% endif %}">
+
+    <div class="form-group">
+      <label for="name">Название *</label>
+      <input type="text" id="name" name="name" required
+             value="{% if tpl %}{{ tpl.name }}{% endif %}"
+             placeholder="Например: Модуль печатной формы">
+    </div>
+
+    <div class="form-group">
+      <label for="description">Описание</label>
+      <input type="text" id="description" name="description"
+             value="{% if tpl %}{{ tpl.description }}{% endif %}"
+             placeholder="Краткое описание назначения шаблона">
+    </div>
+
+    <div class="form-group">
+      <label for="tags">Теги <span style="font-weight:400;color:#9ca3af">(через запятую)</span></label>
+      <input type="text" id="tags" name="tags"
+             value="{% if tpl %}{{ tpl.tags | join(', ') }}{% endif %}"
+             placeholder="печать, форма, макет">
+    </div>
+
+    <div class="form-group">
+      <label for="code">Код BSL</label>
+      <textarea id="code" name="code" class="code-area"
+                placeholder="// Введите код шаблона...">{% if tpl %}{{ tpl.code }}{% endif %}</textarea>
+    </div>
+
+    <div class="actions-row">
+      <a href="/" class="btn btn-secondary">Отмена</a>
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

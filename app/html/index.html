@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}1С Шаблоны{% endblock %}
+
+{% block content %}
+<form method="get" action="/" class="search-row">
+  <input type="search" name="q" value="{{ q }}" placeholder="Поиск по названию, описанию, тегам…">
+  <button type="submit" class="btn btn-secondary">Найти</button>
+  {% if q %}<a href="/" class="btn btn-secondary">✕</a>{% endif %}
+</form>
+
+{% if items %}
+  {% for tpl in items %}
+  <div class="card">
+    <div class="tpl-name">{{ tpl.name }}</div>
+    {% if tpl.description %}
+    <div class="tpl-desc">{{ tpl.description }}</div>
+    {% endif %}
+    <div class="tpl-footer">
+      {% for tag in tpl.tags %}
+        <span class="tag">{{ tag }}</span>
+      {% endfor %}
+      <span style="flex:1"></span>
+      <a href="/{{ tpl.id }}/edit" class="btn btn-secondary btn-sm">Редактировать</a>
+      <form method="post" action="/{{ tpl.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Удалить шаблон «{{ tpl.name }}»?')">
+        <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty">
+    {% if q %}
+      Ничего не найдено по запросу «{{ q }}»
+    {% else %}
+      Шаблонов пока нет. <a href="/new">Создайте первый!</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

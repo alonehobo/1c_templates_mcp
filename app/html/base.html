@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}1С Шаблоны{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f6f8;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header a { color: #fff; text-decoration: none; font-weight: 600; font-size: 1.1rem; }
+    header a:hover { color: #a78bfa; }
+    header .spacer { flex: 1; }
+
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .45rem 1rem;
+      border-radius: 6px;
+      font-size: .875rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: #6d28d9; color: #fff; }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-sm { padding: .3rem .7rem; font-size: .8rem; }
+
+    input[type=text], input[type=search], textarea {
+      width: 100%;
+      padding: .55rem .75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: .9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, textarea:focus { border-color: #6d28d9; }
+
+    label { display: block; font-size: .85rem; font-weight: 500; margin-bottom: .3rem; color: #374151; }
+
+    .form-group { margin-bottom: 1.1rem; }
+
+    textarea.code-area {
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: .82rem;
+      min-height: 420px;
+      resize: vertical;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-color: #3b3b5c;
+      line-height: 1.5;
+    }
+    textarea.code-area:focus { border-color: #a78bfa; }
+
+    .tag {
+      display: inline-block;
+      background: #ede9fe;
+      color: #5b21b6;
+      border-radius: 4px;
+      padding: .15rem .5rem;
+      font-size: .75rem;
+      font-weight: 500;
+      margin-right: .3rem;
+    }
+
+    .tpl-name { font-size: 1rem; font-weight: 600; }
+    .tpl-desc { color: #6b7280; font-size: .875rem; margin-top: .25rem; }
+    .tpl-footer { display: flex; align-items: center; gap: .5rem; margin-top: .9rem; flex-wrap: wrap; }
+
+    .search-row { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+    .search-row input { flex: 1; }
+
+    .error-box {
+      background: #fee2e2; color: #991b1b;
+      border: 1px solid #fca5a5;
+      border-radius: 6px;
+      padding: .75rem 1rem;
+      margin-bottom: 1rem;
+      font-size: .875rem;
+    }
+
+    .empty { text-align: center; color: #9ca3af; padding: 3rem 0; }
+
+    .page-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 1.25rem; }
+
+    .actions-row { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.25rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">1С Шаблоны</a>
+    <span class="spacer"></span>
+    <a href="/new" class="btn btn-primary btn-sm">+ Новый шаблон</a>
+  </header>
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
