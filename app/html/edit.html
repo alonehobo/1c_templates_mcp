@@ -11,7 +11,7 @@
 {% endif %}
 
 <div class="card">
-  <form method="post" action="{% if tpl %}/{{ tpl.id }}/edit{% else %}/new{% endif %}">
+  <form method="post" action="{% if tpl %}/{{ tpl.id }}/edit{% else %}/new{% endif %}" id="tplForm">
 
     <div class="form-group">
       <label for="name">Название *</label>
@@ -35,9 +35,9 @@
     </div>
 
     <div class="form-group">
-      <label for="code">Код BSL</label>
-      <textarea id="code" name="code" class="code-area"
-                placeholder="// Введите код шаблона...">{% if tpl %}{{ tpl.code }}{% endif %}</textarea>
+      <label>Код BSL</label>
+      <textarea id="code" name="code" style="display:none;">{% if tpl %}{{ tpl.code }}{% endif %}</textarea>
+      <iframe id="editor" src="/bsl_console/index.html" style="width:100%; height:700px; border:1px solid #d1d5db; border-radius:6px;"></iframe>
     </div>
 
     <div class="actions-row">
@@ -46,4 +46,32 @@
     </div>
   </form>
 </div>
+
+<script>
+  const CODE = {{ (tpl.code if tpl else '') | tojson }};
+  const iframe = document.getElementById('editor');
+  const codeArea = document.getElementById('code');
+  const form = document.getElementById('tplForm');
+
+  iframe.onload = function() {
+    const w = iframe.contentWindow;
+    if (w.updateText) {
+      w.updateText(CODE);
+    } else {
+      const interval = setInterval(() => {
+        if (w.updateText) {
+          w.updateText(CODE);
+          clearInterval(interval);
+        }
+      }, 100);
+    }
+  };
+
+  form.addEventListener('submit', function() {
+    const w = iframe.contentWindow;
+    if (w.getText) {
+      codeArea.value = w.getText();
+    }
+  });
+</script>
 {% endblock %}

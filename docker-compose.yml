@@ -1,5 +1,8 @@
+name: mcp-templates
+
 services:
   templates:
+    container_name: mcp-templates
     build: .
     ports:
       - "8023:8023"

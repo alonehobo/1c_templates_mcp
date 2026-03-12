@@ -22,6 +22,10 @@ def _template_path(template_id: str) -> Path:
     return TEMPLATES_DIR / f"{template_id}.json"
 
 
+def _code_path(template_id: str) -> Path:
+    return TEMPLATES_DIR / f"{template_id}.bsl"
+
+
 def list_templates() -> list[dict]:
     _ensure_dir()
     result = []
@@ -44,7 +48,12 @@ def get_template(template_id: str) -> Optional[dict]:
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        # Код из отдельного .bsl файла (приоритет) или из JSON
+        bsl = _code_path(template_id)
+        if bsl.exists():
+            data["code"] = bsl.read_text(encoding="utf-8")
+        return data
     except (json.JSONDecodeError, OSError):
         return None
 
@@ -73,17 +82,17 @@ def create_template(name: str, description: str, tags: list[str], code: str) -> 
         template_id = f"{base_id}_{counter}"
         counter += 1
 
-    data = {
+    meta = {
         "id": template_id,
         "name": name,
         "description": description,
         "tags": tags,
-        "code": code,
     }
     _template_path(template_id).write_text(
-        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    return data
+    _code_path(template_id).write_text(code, encoding="utf-8")
+    return {**meta, "code": code}
 
 
 def update_template(
@@ -96,15 +105,15 @@ def update_template(
     path = _template_path(template_id)
     if not path.exists():
         return None
-    data = {
+    meta = {
         "id": template_id,
         "name": name,
         "description": description,
         "tags": tags,
-        "code": code,
     }
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    return data
+    path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    _code_path(template_id).write_text(code, encoding="utf-8")
+    return {**meta, "code": code}
 
 
 def delete_template(template_id: str) -> bool:
@@ -112,4 +121,7 @@ def delete_template(template_id: str) -> bool:
     if not path.exists():
         return False
     path.unlink()
+    bsl = _code_path(template_id)
+    if bsl.exists():
+        bsl.unlink()
     return True

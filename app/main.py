@@ -4,8 +4,9 @@ from pathlib import Path
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
+from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
-from starlette.routing import Route
+from starlette.routing import Route, Mount
 from mcp.server.fastmcp import FastMCP
 
 import storage
@@ -85,6 +86,16 @@ async def new_save(request: Request):
     return RedirectResponse("/", status_code=303)
 
 
+async def view(request: Request):
+    template_id = request.path_params["template_id"]
+    tpl = storage.get_template(template_id)
+    if tpl is None:
+        return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse(
+        request, "view.html", {"tpl": tpl}
+    )
+
+
 async def edit_form(request: Request):
     template_id = request.path_params["template_id"]
     tpl = storage.get_template(template_id)
@@ -152,10 +163,16 @@ app.add_middleware(
     expose_headers=["Mcp-Session-Id"],
 )
 
+# Статика bsl_console (Monaco Editor для BSL)
+BSL_CONSOLE_DIR = Path("/app/bsl_console")
+if BSL_CONSOLE_DIR.exists():
+    app.routes.append(Mount("/bsl_console", app=StaticFiles(directory=str(BSL_CONSOLE_DIR)), name="bsl_console"))
+
 # Добавляем веб-UI роуты к MCP приложению
 app.routes.append(Route("/", endpoint=index, methods=["GET"]))
 app.routes.append(Route("/new", endpoint=new_form, methods=["GET"]))
 app.routes.append(Route("/new", endpoint=new_save, methods=["POST"]))
+app.routes.append(Route("/{template_id}", endpoint=view, methods=["GET"]))
 app.routes.append(Route("/{template_id}/edit", endpoint=edit_form, methods=["GET"]))
 app.routes.append(Route("/{template_id}/edit", endpoint=edit_save, methods=["POST"]))
 app.routes.append(Route("/{template_id}/delete", endpoint=delete, methods=["POST"]))
