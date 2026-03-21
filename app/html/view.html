@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ tpl.name }} — 1С Шаблоны{% endblock %}
+
+{% block header_actions %}
+<a href="/" class="btn btn-secondary btn-sm">К списку</a>
+<button onclick="copyCode()" class="btn btn-secondary btn-sm" id="copyBtn">Копировать</button>
+<a href="/{{ tpl.id }}/edit" class="btn btn-primary btn-sm">Редактировать</a>
+{% endblock %}
+
+{% block container_class %}container-wide{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:baseline; gap:1rem; margin-bottom:.75rem; flex-wrap:wrap;">
+  <div class="page-title" style="margin-bottom:0;">{{ tpl.name }}</div>
+  {% if tpl.description %}
+  <span style="color:#6b7280; font-size:.875rem;">{{ tpl.description }}</span>
+  {% endif %}
+  {% if tpl.tags %}
+  <div>
+    {% for tag in tpl.tags %}
+      <span class="tag">{{ tag }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:.5rem 1rem; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+    <span style="font-size:.8rem; color:#6b7280; font-weight:500;">Код BSL</span>
+  </div>
+  <iframe id="editor" src="/bsl_console/index.html" style="width:100%; height:calc(100vh - 160px); border:none;"></iframe>
+</div>
+
+<script>
+  const CODE = {{ tpl.code | default('', true) | tojson }};
+  const iframe = document.getElementById('editor');
+  iframe.onload = function() {
+    const w = iframe.contentWindow;
+    if (w.updateText) {
+      w.updateText(CODE);
+      w.setReadOnly(true);
+    } else {
+      const interval = setInterval(() => {
+        if (w.updateText) {
+          w.updateText(CODE);
+          w.setReadOnly(true);
+          clearInterval(interval);
+        }
+      }, 100);
+    }
+  };
+
+  function copyCode() {
+    const w = iframe.contentWindow;
+    const text = w.getText ? w.getText() : CODE;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Скопировано!';
+      setTimeout(() => btn.textContent = 'Копировать', 1500);
+    });
+  }
+</script>
+{% endblock %}
