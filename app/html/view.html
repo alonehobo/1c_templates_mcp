@@ -1,32 +1,34 @@
 {% extends "base.html" %}
 {% block title %}{{ tpl.name }} — 1С Шаблоны{% endblock %}
 
+{% block header_actions %}
+<a href="/" class="btn btn-secondary btn-sm">К списку</a>
+<button onclick="copyCode()" class="btn btn-secondary btn-sm" id="copyBtn">Копировать</button>
+<a href="/{{ tpl.id }}/edit" class="btn btn-primary btn-sm">Редактировать</a>
+{% endblock %}
+
+{% block container_class %}container-wide{% endblock %}
+
 {% block content %}
-<div class="page-title">{{ tpl.name }}</div>
-
-{% if tpl.description %}
-<p style="color:#6b7280; margin-bottom:1rem;">{{ tpl.description }}</p>
-{% endif %}
-
-{% if tpl.tags %}
-<div style="margin-bottom:1.25rem;">
-  {% for tag in tpl.tags %}
-    <span class="tag">{{ tag }}</span>
-  {% endfor %}
+<div style="display:flex; align-items:baseline; gap:1rem; margin-bottom:.75rem; flex-wrap:wrap;">
+  <div class="page-title" style="margin-bottom:0;">{{ tpl.name }}</div>
+  {% if tpl.description %}
+  <span style="color:#6b7280; font-size:.875rem;">{{ tpl.description }}</span>
+  {% endif %}
+  {% if tpl.tags %}
+  <div>
+    {% for tag in tpl.tags %}
+      <span class="tag">{{ tag }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
-{% endif %}
 
 <div class="card" style="padding:0; overflow:hidden;">
-  <div style="display:flex; justify-content:space-between; align-items:center; padding:.75rem 1rem; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:.5rem 1rem; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
     <span style="font-size:.8rem; color:#6b7280; font-weight:500;">Код BSL</span>
-    <button onclick="copyCode()" class="btn btn-secondary btn-sm" id="copyBtn">Копировать</button>
   </div>
-  <iframe id="editor" src="/bsl_console/index.html" style="width:100%; height:700px; border:none;"></iframe>
-</div>
-
-<div class="actions-row">
-  <a href="/" class="btn btn-secondary">К списку</a>
-  <a href="/{{ tpl.id }}/edit" class="btn btn-primary">Редактировать</a>
+  <iframe id="editor" src="/bsl_console/index.html" style="width:100%; height:calc(100vh - 160px); border:none;"></iframe>
 </div>
 
 <script>
@@ -38,7 +40,6 @@
       w.updateText(CODE);
       w.setReadOnly(true);
     } else {
-      // Если API ещё не готово, ждём
       const interval = setInterval(() => {
         if (w.updateText) {
           w.updateText(CODE);

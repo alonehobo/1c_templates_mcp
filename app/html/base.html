@@ -22,6 +22,9 @@
       display: flex;
       align-items: center;
       gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
     header a { color: #fff; text-decoration: none; font-weight: 600; font-size: 1.1rem; }
     header a:hover { color: #a78bfa; }
@@ -31,6 +34,11 @@
       max-width: 960px;
       margin: 2rem auto;
       padding: 0 1rem;
+    }
+    .container-wide {
+      max-width: none;
+      margin: 1rem 2rem;
+      padding: 0;
     }
 
     .card {
@@ -114,9 +122,11 @@
   <header>
     <a href="/">1С Шаблоны</a>
     <span class="spacer"></span>
+    {% block header_actions %}
     <a href="/new" class="btn btn-primary btn-sm">+ Новый шаблон</a>
+    {% endblock %}
   </header>
-  <div class="container">
+  <div class="container {% block container_class %}{% endblock %}">
     {% block content %}{% endblock %}
   </div>
 </body>

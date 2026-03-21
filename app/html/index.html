@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}1С Шаблоны{% endblock %}
 
+{% block header_actions %}
+<a href="/" class="btn btn-secondary btn-sm">Перечитать</a>
+<a href="/new" class="btn btn-primary btn-sm">+ Новый шаблон</a>
+{% endblock %}
+
 {% block content %}
 <form method="get" action="/" class="search-row">
   <input type="search" name="q" value="{{ q }}" placeholder="Поиск по названию, описанию, тегам…">
