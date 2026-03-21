@@ -43,10 +43,12 @@ def _read_index() -> dict[str, dict]:
 
 def _write_index(index: dict[str, dict]) -> None:
     _ensure_dir()
-    INDEX_PATH.write_text(
+    tmp = INDEX_PATH.with_suffix(".tmp")
+    tmp.write_text(
         json.dumps(index, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    tmp.replace(INDEX_PATH)
 
 
 def _sync_bsl_files(index: dict[str, dict]) -> bool:

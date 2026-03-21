@@ -266,72 +266,83 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path.rstrip("/") or "/"
-        qs = dict(urllib.parse.parse_qsl(parsed.query))
+        try:
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed.path.rstrip("/") or "/"
+            qs = dict(urllib.parse.parse_qsl(parsed.query))
 
-        if path.startswith("/bsl_console/"):
-            self._serve_static(path)
-        elif path == "/":
-            q = qs.get("q", "")
-            items = storage.search_templates(q) if q else storage.list_templates()
-            self._html(_render_index(items, q))
-        elif path == "/new":
-            self._html(_render_edit())
-        elif path.endswith("/edit"):
-            tid = urllib.parse.unquote(path[1:].rsplit("/", 1)[0])
-            tpl = storage.get_template(tid)
-            self._html(_render_edit(tpl)) if tpl else self._redirect("/")
-        elif path.count("/") == 1:
-            tid = urllib.parse.unquote(path[1:])
-            tpl = storage.get_template(tid)
-            self._html(_render_view(tpl)) if tpl else self._redirect("/")
-        else:
-            self._send(404, "text/plain", "Not found")
+            if path.startswith("/bsl_console/"):
+                self._serve_static(path)
+            elif path == "/":
+                q = qs.get("q", "")
+                items = storage.search_templates(q) if q else storage.list_templates()
+                self._html(_render_index(items, q))
+            elif path == "/new":
+                self._html(_render_edit())
+            elif path.endswith("/edit"):
+                tid = urllib.parse.unquote(path[1:].rsplit("/", 1)[0])
+                tpl = storage.get_template(tid)
+                self._html(_render_edit(tpl)) if tpl else self._redirect("/")
+            elif path.count("/") == 1:
+                tid = urllib.parse.unquote(path[1:])
+                tpl = storage.get_template(tid)
+                self._html(_render_view(tpl)) if tpl else self._redirect("/")
+            else:
+                self._send(404, "text/plain", "Not found")
+        except Exception as exc:
+            self._send(500, "text/plain; charset=utf-8", f"Internal error: {exc}")
 
     def do_POST(self):
-        path = urllib.parse.urlparse(self.path).path.rstrip("/") or "/"
+        try:
+            path = urllib.parse.urlparse(self.path).path.rstrip("/") or "/"
 
-        if path == "/mcp":
-            body = json.loads(self._read_body())
-            resp = _mcp_handle(body)
-            if resp is None:
-                self._send(202, "text/plain", "")
-            else:
-                accept = self.headers.get("Accept", "")
-                if "text/event-stream" in accept:
-                    sse = f"event: message\ndata: {json.dumps(resp, ensure_ascii=False)}\n\n"
-                    self._send(200, "text/event-stream", sse)
+            if path == "/mcp":
+                raw = self._read_body()
+                try:
+                    body = json.loads(raw)
+                except (json.JSONDecodeError, ValueError):
+                    self._send(400, "application/json", '{"error":"Invalid JSON"}')
+                    return
+                resp = _mcp_handle(body)
+                if resp is None:
+                    self._send(202, "text/plain", "")
                 else:
-                    self._send(200, "application/json", json.dumps(resp, ensure_ascii=False))
-            return
+                    accept = self.headers.get("Accept", "")
+                    if "text/event-stream" in accept:
+                        sse = f"event: message\ndata: {json.dumps(resp, ensure_ascii=False)}\n\n"
+                        self._send(200, "text/event-stream", sse)
+                    else:
+                        self._send(200, "application/json", json.dumps(resp, ensure_ascii=False))
+                return
 
-        if path == "/new":
-            form = self._parse_form()
-            name = form.get("name", "").strip()
-            if not name:
-                self._html(_render_edit(error="Название не может быть пустым"), 422)
-                return
-            tags = [t.strip() for t in form.get("tags", "").split(",") if t.strip()]
-            storage.create_template(name, form.get("description", "").strip(), tags, form.get("code", ""))
-            self._redirect("/")
-        elif path.endswith("/edit"):
-            tid = urllib.parse.unquote(path[1:].rsplit("/", 1)[0])
-            form = self._parse_form()
-            name = form.get("name", "").strip()
-            if not name:
-                tpl = storage.get_template(tid)
-                self._html(_render_edit(tpl, error="Название не может быть пустым"), 422)
-                return
-            tags = [t.strip() for t in form.get("tags", "").split(",") if t.strip()]
-            storage.update_template(tid, name, form.get("description", "").strip(), tags, form.get("code", ""))
-            self._redirect("/")
-        elif path.endswith("/delete"):
-            tid = urllib.parse.unquote(path[1:].rsplit("/", 1)[0])
-            storage.delete_template(tid)
-            self._redirect("/")
-        else:
-            self._send(404, "text/plain", "Not found")
+            if path == "/new":
+                form = self._parse_form()
+                name = form.get("name", "").strip()
+                if not name:
+                    self._html(_render_edit(error="Название не может быть пустым"), 422)
+                    return
+                tags = [t.strip() for t in form.get("tags", "").split(",") if t.strip()]
+                storage.create_template(name, form.get("description", "").strip(), tags, form.get("code", ""))
+                self._redirect("/")
+            elif path.endswith("/edit"):
+                tid = urllib.parse.unquote(path[1:].rsplit("/", 1)[0])
+                form = self._parse_form()
+                name = form.get("name", "").strip()
+                if not name:
+                    tpl = storage.get_template(tid)
+                    self._html(_render_edit(tpl, error="Название не может быть пустым"), 422)
+                    return
+                tags = [t.strip() for t in form.get("tags", "").split(",") if t.strip()]
+                storage.update_template(tid, name, form.get("description", "").strip(), tags, form.get("code", ""))
+                self._redirect("/")
+            elif path.endswith("/delete"):
+                tid = urllib.parse.unquote(path[1:].rsplit("/", 1)[0])
+                storage.delete_template(tid)
+                self._redirect("/")
+            else:
+                self._send(404, "text/plain", "Not found")
+        except Exception as exc:
+            self._send(500, "text/plain; charset=utf-8", f"Internal error: {exc}")
 
     def do_DELETE(self):
         path = urllib.parse.urlparse(self.path).path.rstrip("/")
