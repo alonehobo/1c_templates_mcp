@@ -18,4 +18,7 @@ ENV PYTHONPATH=/app/app
 
 EXPOSE 8023
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8023/health')" || exit 1
+
 CMD ["python", "/app/app/main.py"]

@@ -7,11 +7,22 @@
 {% endblock %}
 
 {% block content %}
-<form method="get" action="/" class="search-row">
-  <input type="search" name="q" value="{{ q }}" placeholder="Поиск по названию, описанию, тегам…">
+<form method="get" action="/" class="search-row" id="search-form">
+  <input type="search" name="q" id="search-input" value="{{ q }}" placeholder="Поиск по названию, описанию, тегам…">
   <button type="submit" class="btn btn-secondary">Найти</button>
   {% if q %}<a href="/" class="btn btn-secondary">✕</a>{% endif %}
 </form>
+<script>
+(function() {
+  var input = document.getElementById('search-input');
+  var form = document.getElementById('search-form');
+  var timer = null;
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    timer = setTimeout(function() { form.submit(); }, 400);
+  });
+})();
+</script>
 
 {% if items %}
   {% for tpl in items %}

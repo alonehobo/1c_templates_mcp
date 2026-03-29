@@ -70,9 +70,11 @@ def _page(title, body, header_actions="", wide=False):
 
 def _render_index(items, q=""):
     clear = ' <a href="/" class="btn btn-secondary">✕</a>' if q else ""
-    html = f'''<form method="get" action="/" class="search-row">
-<input type="search" name="q" value="{escape(q)}" placeholder="Поиск по названию, описанию, тегам…">
-<button type="submit" class="btn btn-secondary">Найти</button>{clear}</form>'''
+    html = f'''<form method="get" action="/" class="search-row" id="sf">
+<input type="search" name="q" id="qi" value="{escape(q)}" placeholder="Поиск по названию, описанию, тегам…">
+<button type="submit" class="btn btn-secondary">Найти</button>{clear}</form>
+<script>!function(){{var i=document.getElementById("qi"),f=document.getElementById("sf"),t;
+i.addEventListener("input",function(){{clearTimeout(t);t=setTimeout(function(){{f.submit()}},400)}})}}()</script>'''
     if not items:
         msg = f'Ничего не найдено по запросу «{escape(q)}»' if q else 'Шаблонов пока нет. <a href="/new">Создайте первый!</a>'
         html += f'<div class="empty">{msg}</div>'
@@ -226,6 +228,20 @@ def _mcp_handle(body: dict) -> dict | None:
 # ---------------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    timeout = 10  # таймаут на чтение от клиента (секунды)
+
+    def handle(self):
+        """Перехватываем ошибки сокета, чтобы разрыв соединения не ронял поток."""
+        try:
+            super().handle()
+        except (ConnectionError, TimeoutError, OSError):
+            pass
+
+    def end_headers(self):
+        """Закрываем соединение после каждого ответа — предотвращает утечку потоков."""
+        self.send_header("Connection", "close")
+        super().end_headers()
 
     def _send(self, code, ctype, body):
         raw = body.encode("utf-8") if isinstance(body, str) else body
@@ -270,6 +286,10 @@ class Handler(BaseHTTPRequestHandler):
             parsed = urllib.parse.urlparse(self.path)
             path = parsed.path.rstrip("/") or "/"
             qs = dict(urllib.parse.parse_qsl(parsed.query))
+
+            if path == "/health":
+                self._send(200, "text/plain", "ok")
+                return
 
             if path.startswith("/bsl_console/"):
                 self._serve_static(path)
@@ -367,5 +387,6 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     storage.migrate_if_needed()
     server = ThreadingHTTPServer(("0.0.0.0", 8023), Handler)
+    server.daemon_threads = True  # зависшие потоки не блокируют завершение
     print("1C Templates MCP: http://0.0.0.0:8023")
     server.serve_forever()

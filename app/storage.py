@@ -177,8 +177,19 @@ def search_templates(query: str) -> list[dict]:
     if not words:
         return list_templates()
 
+    # Читаем индекс напрямую, без повторной синхронизации
+    # (list_templates уже делает sync при загрузке главной страницы)
+    index = _read_index()
+    all_items = sorted(
+        [
+            {"id": v["id"], "name": v["name"], "description": v["description"], "tags": v["tags"]}
+            for v in index.values()
+        ],
+        key=lambda x: x["name"].lower(),
+    )
+
     results = []
-    for tpl in list_templates():
+    for tpl in all_items:
         haystack = _normalize(" ".join([
             tpl.get("name", ""),
             tpl.get("description", ""),
