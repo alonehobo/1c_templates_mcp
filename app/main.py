@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """MCP-сервер шаблонов 1С. Без внешних зависимостей — только stdlib Python."""
 
+import gc
 import json
 import mimetypes
 import urllib.parse
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from html import escape
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
 import storage
@@ -371,22 +373,66 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send(404, "text/plain", "Not found")
 
+    # Кэш статических файлов bsl_console (они не меняются в рантайме)
+    _static_cache: dict[str, tuple[str, bytes]] = {}
+
     def _serve_static(self, path):
         rel = path[len("/bsl_console/"):]
         fp = (BSL_CONSOLE_DIR / rel).resolve()
         if not str(fp).startswith(str(BSL_CONSOLE_DIR.resolve())) or not fp.is_file():
             self._send(404, "text/plain", "Not found")
             return
-        mime = mimetypes.guess_type(str(fp))[0] or "application/octet-stream"
-        self._send(200, mime, fp.read_bytes())
+        # Кэшируем статику в памяти — файлы не меняются
+        cached = Handler._static_cache.get(rel)
+        if cached is None:
+            mime = mimetypes.guess_type(str(fp))[0] or "application/octet-stream"
+            data = fp.read_bytes()
+            Handler._static_cache[rel] = (mime, data)
+            cached = (mime, data)
+        self.send_response(200)
+        self.send_header("Content-Type", cached[0])
+        self.send_header("Content-Length", str(len(cached[1])))
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self._cors()
+        self.end_headers()
+        self.wfile.write(cached[1])
 
     def log_message(self, fmt, *args):
         pass  # тишина
 
 
+# Периодическая сборка мусора
+def _gc_worker():
+    import time
+    while True:
+        time.sleep(300)  # каждые 5 минут
+        gc.collect()
+
+import threading as _threading
+_gc_thread = _threading.Thread(target=_gc_worker, daemon=True)
+_gc_thread.start()
+
+
+class PoolHTTPServer(HTTPServer):
+    """HTTPServer с ограниченным пулом потоков вместо безлимитного ThreadingHTTPServer."""
+
+    _pool = ThreadPoolExecutor(max_workers=8)
+    daemon_threads = True
+
+    def process_request(self, request, client_address):
+        self._pool.submit(self._process, request, client_address)
+
+    def _process(self, request, client_address):
+        try:
+            self.finish_request(request, client_address)
+        except Exception:
+            self.handle_error(request, client_address)
+        finally:
+            self.shutdown_request(request)
+
+
 if __name__ == "__main__":
     storage.migrate_if_needed()
-    server = ThreadingHTTPServer(("0.0.0.0", 8023), Handler)
-    server.daemon_threads = True  # зависшие потоки не блокируют завершение
+    server = PoolHTTPServer(("0.0.0.0", 8023), Handler)
     print("1C Templates MCP: http://0.0.0.0:8023")
     server.serve_forever()

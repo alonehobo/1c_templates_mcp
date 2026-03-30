@@ -13,6 +13,7 @@ docker run -d ^
   -p 8023:8023 ^
   -v "%cd%\data\templates:/app/data/templates" ^
   -e TEMPLATES_DIR=/app/data/templates ^
+  --memory=256m ^
   --restart unless-stopped ^
   mcp-templates
 

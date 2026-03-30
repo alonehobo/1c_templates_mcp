@@ -1,11 +1,17 @@
 import json
 import os
 import re
+import threading
 from pathlib import Path
 from typing import Optional
 
 TEMPLATES_DIR = Path(os.environ.get("TEMPLATES_DIR", "/app/data/templates"))
 INDEX_PATH = TEMPLATES_DIR / "index.json"
+
+# Кэш индекса: храним в памяти, перечитываем только если файл изменился
+_index_cache: dict[str, dict] | None = None
+_index_mtime: float = 0.0
+_index_lock = threading.Lock()
 
 
 def _ensure_dir() -> None:
@@ -28,27 +34,46 @@ def _code_path(template_id: str) -> Path:
 # ---------------------------------------------------------------------------
 
 def _read_index() -> dict[str, dict]:
-    """Читает index.json. Возвращает {id: {id, name, description, tags}}."""
-    if not INDEX_PATH.exists():
-        return {}
-    try:
-        data = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
-        if isinstance(data, list):
-            # совместимость: список → словарь
-            return {item["id"]: item for item in data if "id" in item}
-        return data
-    except (json.JSONDecodeError, OSError):
-        return {}
+    """Читает index.json с кэшированием. Перечитывает только если файл изменился."""
+    global _index_cache, _index_mtime
+    with _index_lock:
+        if not INDEX_PATH.exists():
+            _index_cache = {}
+            _index_mtime = 0.0
+            return {}
+        try:
+            mtime = INDEX_PATH.stat().st_mtime
+            if _index_cache is not None and mtime == _index_mtime:
+                return {k: dict(v) for k, v in _index_cache.items()}
+            data = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                # совместимость: список → словарь
+                _index_cache = {item["id"]: item for item in data if "id" in item}
+            else:
+                _index_cache = data
+            _index_mtime = mtime
+            return {k: dict(v) for k, v in _index_cache.items()}
+        except (json.JSONDecodeError, OSError):
+            return {}
 
 
 def _write_index(index: dict[str, dict]) -> None:
+    global _index_cache, _index_mtime
     _ensure_dir()
     tmp = INDEX_PATH.with_suffix(".tmp")
-    tmp.write_text(
-        json.dumps(index, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    tmp.replace(INDEX_PATH)
+    try:
+        tmp.write_text(
+            json.dumps(index, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        tmp.replace(INDEX_PATH)
+        # Обновляем кэш сразу после записи
+        with _index_lock:
+            _index_cache = index
+            _index_mtime = INDEX_PATH.stat().st_mtime
+    finally:
+        if tmp.exists():
+            tmp.unlink()
 
 
 def _sync_bsl_files(index: dict[str, dict]) -> bool:
